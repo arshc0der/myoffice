@@ -20,6 +20,8 @@ signals:
     void minimizeRequested();
     void maximizeToggleRequested();
     void closeRequested();
+    void aboutRequested();
+    void settingsRequested();
 
 protected:
     void paintEvent(QPaintEvent *) override;
@@ -28,7 +30,7 @@ protected:
 
 private:
     void refreshTheme();
-    IconButton *m_back, *m_theme, *m_min, *m_max, *m_close;
+    IconButton *m_back, *m_help, *m_settings, *m_theme, *m_min, *m_max, *m_close;
     QLabel *m_logo, *m_brand, *m_context;
     int m_radius = 12;
 };

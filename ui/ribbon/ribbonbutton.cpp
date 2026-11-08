@@ -96,7 +96,7 @@ void RibbonButton::paintEvent(QPaintEvent *)
         p.drawRoundedRect(r, Design::Radius::sm, Design::Radius::sm);
     }
     const QColor ink = checked ? pal.accentDeep : pal.text;
-    const QString icon = m_action->property("icon").toString();
+    const QString icon = m_action->property("iconName").toString();
     const qreal dpr = devicePixelRatioF();
     const QFont font = theme.uiFont(Design::Type::caption);
     p.setFont(font);

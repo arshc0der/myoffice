@@ -15,7 +15,10 @@ QPixmap pixmap(const QString &name, const QColor &color, int size, qreal dpr)
     if (auto it = cache.constFind(key); it != cache.constEnd()) return *it;
 
     QPixmap pm;
-    QFile f(QStringLiteral(":/resources/icons/") + name + QStringLiteral(".svg"));
+    // The .qrc lives in resources/ and lists "icons/<name>.svg" under prefix "/", so the resource path is
+    // ":/icons/<name>.svg". The older ":/resources/icons/" form is kept as a fallback.
+    QFile f(QStringLiteral(":/icons/") + name + QStringLiteral(".svg"));
+    if (!f.exists()) f.setFileName(QStringLiteral(":/resources/icons/") + name + QStringLiteral(".svg"));
     if (f.open(QIODevice::ReadOnly)) {
         QByteArray svg = f.readAll();
         svg.replace("currentColor", color.name(QColor::HexRgb).toUtf8());
@@ -30,7 +33,7 @@ QPixmap pixmap(const QString &name, const QColor &color, int size, qreal dpr)
         p.end();
         pm.setDevicePixelRatio(dpr);
     } else {
-        qWarning() << "Missing icon" << name;
+        qWarning() << "Missing icon resource:" << name << "(check resources/resources.qrc is listed in RESOURCES and rebuild with qmake)";
     }
     cache.insert(key, pm);
     return pm;

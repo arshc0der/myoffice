@@ -9,7 +9,7 @@ class LauncherPage;
 class Surface;
 class TitleBar;
 class WordWorkspace;
-class WorkspacePage;
+class PptWorkspace;
 
 // Frameless, translucent top-level window hosting the launcher and the application workspaces.
 class MainWindow : public QWidget
@@ -38,12 +38,13 @@ private:
     void openFileDialog();
     WordWorkspace *ensureWord();
     ExcelWorkspace *ensureExcel();
+    PptWorkspace *ensurePpt();
 
     Surface *m_surface;
     TitleBar *m_titleBar;
     FadeStack *m_stack;
     LauncherPage *m_launcher;
-    WorkspacePage *m_placeholder;
     WordWorkspace *m_word = nullptr;
     ExcelWorkspace *m_excel = nullptr;
+    PptWorkspace *m_ppt = nullptr;
 };

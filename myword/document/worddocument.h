@@ -8,6 +8,7 @@
 #include "ui/workspace/workspace.h"
 
 class FindBar;
+class Ruler;
 class PageView;
 class QTextEdit;
 
@@ -48,6 +49,8 @@ public:
     QTextEdit *edit() const { return m_edit; }
     PageView *view() const { return m_view; }
     FindBar *findBar() const { return m_find; }
+    void setRulerVisible(bool on);
+    bool rulerVisible() const;
     FormatState formatState() const;
     Stats stats() const;
     PageSetup pageSetup() const;
@@ -94,5 +97,6 @@ private:
     PageView *m_view;
     QTextEdit *m_edit;
     FindBar *m_find;
+    Ruler *m_ruler;
     QTimer m_statsTimer;
 };

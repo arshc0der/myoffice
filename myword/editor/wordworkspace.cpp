@@ -336,6 +336,10 @@ void WordWorkspace::buildView()
     QAction *mode = makeAction(tr("Read\nMode"), QStringLiteral("eye"), {}, true);
     connect(mode, &QAction::triggered, this, [this](bool on) { if (auto *d = wordDoc()) d->setViewMode(on); });
     page->addGroup(tr("Views"))->addLarge(mode);
+    m_rulerAct = makeAction(tr("Ruler"), QStringLiteral("ruler"), {}, true);
+    m_rulerAct->setChecked(true);
+    connect(m_rulerAct, &QAction::triggered, this, [this](bool on) { if (auto *d = wordDoc()) d->setRulerVisible(on); });
+    page->addGroup(tr("Show"))->addLarge(m_rulerAct);
     connect(m_viewMode, &QAction::toggled, mode, &QAction::setChecked);
     connect(mode, &QAction::toggled, m_viewMode, &QAction::setChecked);
 }
@@ -397,6 +401,7 @@ void WordWorkspace::syncState()
     set(m_alignJ, s.align & Qt::AlignJustify);
     set(m_pageNumbers, d->pageSetup().pageNumbers);
     set(m_viewMode, d->isViewMode());
+    set(m_rulerAct, d->rulerVisible());
     {
         QSignalBlocker b1(m_fontBox), b2(m_sizeBox), b3(m_styleBox);
         m_fontBox->setCurrentFont(QFont(s.family));

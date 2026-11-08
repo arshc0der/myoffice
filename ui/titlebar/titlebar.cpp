@@ -20,11 +20,13 @@ TitleBar::TitleBar(QWidget *parent) : QWidget(parent)
     m_logo = new QLabel(this);
     m_brand = new QLabel(QStringLiteral("MyOffice"), this);
     m_context = new QLabel(this);
+    m_help = new IconButton(QStringLiteral("help"), tr("About MyOffice (F1)"), this);
+    m_settings = new IconButton(QStringLiteral("settings"), tr("Settings"), this);
     m_theme = new IconButton(QStringLiteral("moon"), tr("Toggle light/dark theme"), this);
     m_min = new IconButton(QStringLiteral("minimize"), tr("Minimize"), this);
     m_max = new IconButton(QStringLiteral("maximize"), tr("Maximize"), this);
     m_close = new IconButton(QStringLiteral("close"), tr("Close"), this);
-    for (IconButton *b : { m_back, m_theme, m_min, m_max, m_close }) b->setOnChrome(true);
+    for (IconButton *b : { m_back, m_help, m_settings, m_theme, m_min, m_max, m_close }) b->setOnChrome(true);
     for (QLabel *l : { m_logo, m_brand, m_context }) l->setAttribute(Qt::WA_TransparentForMouseEvents);
     m_back->hide();
     m_context->hide();
@@ -39,6 +41,8 @@ TitleBar::TitleBar(QWidget *parent) : QWidget(parent)
     row->addWidget(m_brand);
     row->addWidget(m_context);
     row->addStretch(1);
+    row->addWidget(m_help);
+    row->addWidget(m_settings);
     row->addWidget(m_theme);
     row->addSpacing(Design::Space::sm);
     row->addWidget(m_min);
@@ -47,6 +51,8 @@ TitleBar::TitleBar(QWidget *parent) : QWidget(parent)
 
     connect(m_back, &IconButton::clicked, this, &TitleBar::backRequested);
     connect(m_theme, &IconButton::clicked, &theme, &ThemeManager::toggleLightDark);
+    connect(m_help, &IconButton::clicked, this, &TitleBar::aboutRequested);
+    connect(m_settings, &IconButton::clicked, this, &TitleBar::settingsRequested);
     connect(m_min, &IconButton::clicked, this, &TitleBar::minimizeRequested);
     connect(m_max, &IconButton::clicked, this, &TitleBar::maximizeToggleRequested);
     connect(m_close, &IconButton::clicked, this, &TitleBar::closeRequested);

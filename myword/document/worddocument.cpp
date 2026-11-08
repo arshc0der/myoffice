@@ -29,6 +29,7 @@
 #include "core/filemanager.h"
 #include "core/fileio.h"
 #include "myword/editor/findbar.h"
+#include "myword/editor/ruler.h"
 #include "myword/editor/pageview.h"
 #include "myword/importexport/docxio.h"
 #include "myword/importexport/htmlio.h"
@@ -66,10 +67,12 @@ WordDocument::WordDocument(QWidget *parent) : DocumentView(parent)
     m_edit = m_view->edit();
     m_find = new FindBar(m_edit, this);
     m_find->hide();
+    m_ruler = new Ruler(m_view, this);
     auto *col = new QVBoxLayout(this);
     col->setContentsMargins(0, 0, 0, 0);
     col->setSpacing(0);
     col->addWidget(m_find);
+    col->addWidget(m_ruler);
     col->addWidget(m_view, 1);
 
     m_edit->document()->setDefaultFont(defaultDocFont());
@@ -252,7 +255,9 @@ void WordDocument::exportDialog(const QString &suffix)
 
 // ------------------------------------------------------------------ state
 PageSetup WordDocument::pageSetup() const { return m_view->pageSetup(); }
-void WordDocument::setPageSetup(const PageSetup &ps) { m_view->setPageSetup(ps); emit statusChanged(); }
+void WordDocument::setPageSetup(const PageSetup &ps) { m_view->setPageSetup(ps); m_ruler->refresh(); emit statusChanged(); }
+void WordDocument::setRulerVisible(bool on) { m_ruler->setVisible(on); }
+bool WordDocument::rulerVisible() const { return m_ruler->isVisibleTo(const_cast<WordDocument *>(this)); }
 void WordDocument::setPageNumbers(bool on) { PageSetup ps = pageSetup(); ps.pageNumbers = on; setPageSetup(ps); }
 
 WordDocument::FormatState WordDocument::formatState() const

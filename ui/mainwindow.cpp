@@ -19,8 +19,9 @@
 #include "core/filemanager.h"
 #include "core/thememanager.h"
 #include "launcher/launcherpage.h"
-#include "launcher/workspacepage.h"
 #include "myexcel/excelworkspace.h"
+#include "dialogs/appdialogs.h"
+#include "myppt/editor/pptworkspace.h"
 #include "myword/document/worddocument.h"
 #include "myword/editor/wordworkspace.h"
 #include "titlebar/titlebar.h"
@@ -67,9 +68,7 @@ MainWindow::MainWindow()
     m_titleBar = new TitleBar(m_surface);
     m_stack = new FadeStack(m_surface);
     m_launcher = new LauncherPage(m_stack);
-    m_placeholder = new WorkspacePage(m_stack);
     m_stack->addWidget(m_launcher);
-    m_stack->addWidget(m_placeholder);
 
     auto *inner = new QVBoxLayout(m_surface);
     inner->setContentsMargins(1, 1, 1, 1);
@@ -85,12 +84,16 @@ MainWindow::MainWindow()
     connect(m_titleBar, &TitleBar::maximizeToggleRequested, this, &MainWindow::toggleMaximize);
     connect(m_titleBar, &TitleBar::closeRequested, this, &QWidget::close);
     connect(m_titleBar, &TitleBar::backRequested, &apps, &ApplicationManager::goHome);
+    connect(m_titleBar, &TitleBar::aboutRequested, this, [this] { AppDialogs::showAbout(this); });
+    connect(m_titleBar, &TitleBar::settingsRequested, this, [this] { AppDialogs::showSettings(this); });
     connect(&apps, &ApplicationManager::navigationChanged, this, &MainWindow::onNavigationChanged);
     connect(&ThemeManager::instance(), &ThemeManager::themeChanged, this, qOverload<>(&QWidget::update));
     connect(m_launcher, &LauncherPage::newRequested, this, [this](ApplicationManager::AppId id) { ApplicationManager::instance().openApp(id); });
     connect(m_launcher, &LauncherPage::openFileRequested, this, &MainWindow::openFileDialog);
     connect(m_launcher, &LauncherPage::openPathRequested, this, [this](const QString &p) { openFiles({ p }); });
 
+    auto *about = new QShortcut(QKeySequence(Qt::Key_F1), this);
+    connect(about, &QShortcut::activated, this, [this] { AppDialogs::showAbout(this); });
     auto *theme = new QShortcut(QKeySequence(QStringLiteral("Ctrl+Shift+D")), this);
     connect(theme, &QShortcut::activated, &ThemeManager::instance(), &ThemeManager::toggleLightDark);
 }
@@ -117,6 +120,17 @@ ExcelWorkspace *MainWindow::ensureExcel()
     return m_excel;
 }
 
+PptWorkspace *MainWindow::ensurePpt()
+{
+    if (!m_ppt) {
+        m_ppt = new PptWorkspace(m_stack);
+        m_stack->addWidget(m_ppt);
+        connect(m_ppt, &Workspace::allDocumentsClosed, &ApplicationManager::instance(), &ApplicationManager::goHome);
+        connect(m_ppt, &Workspace::openFilesRequested, this, &MainWindow::openFiles);
+    }
+    return m_ppt;
+}
+
 void MainWindow::onNavigationChanged()
 {
     auto &mgr = ApplicationManager::instance();
@@ -129,7 +143,7 @@ void MainWindow::onNavigationChanged()
     const auto id = mgr.currentApp();
     ThemeManager::instance().setActiveApp(id);
     m_titleBar->setContext(ApplicationManager::info(id).name);
-    QWidget *page = m_placeholder;
+    QWidget *page = m_launcher;
     if (id == ApplicationManager::AppId::Word) {
         ensureWord();
         if (m_word->documentCount() == 0) m_word->newDocument();
@@ -139,7 +153,9 @@ void MainWindow::onNavigationChanged()
         if (m_excel->documentCount() == 0) m_excel->newDocument();
         page = m_excel;
     } else {
-        m_placeholder->showApp(id);
+        ensurePpt();
+        if (m_ppt->documentCount() == 0) m_ppt->newDocument();
+        page = m_ppt;
     }
     m_stack->fadeTo(page);
 }
@@ -166,7 +182,7 @@ void MainWindow::openFiles(const QStringList &paths)
         }
         if (route.app == ApplicationManager::AppId::Word) { ensureWord()->openFile(p, view); target = route.app; }
         else if (route.app == ApplicationManager::AppId::Excel) { ensureExcel()->openFile(p, view); target = route.app; }
-        else Toast::show(this, tr("MyPowerPoint is not available in this version yet — .pptx support is next."), Toast::Info, 4500);
+        else { ensurePpt()->openFile(p, view); target = route.app; }
     }
     if (target) ApplicationManager::instance().openApp(*target);
 }
@@ -191,7 +207,7 @@ void MainWindow::checkRecovery()
 
 void MainWindow::closeEvent(QCloseEvent *e)
 {
-    for (Workspace *w : { static_cast<Workspace *>(m_word), static_cast<Workspace *>(m_excel) })
+    for (Workspace *w : { static_cast<Workspace *>(m_word), static_cast<Workspace *>(m_excel), static_cast<Workspace *>(m_ppt) })
         if (w && !w->requestCloseAll()) { e->ignore(); return; }
     e->accept();
 }

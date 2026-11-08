@@ -43,6 +43,12 @@ void ThemeManager::setMode(Mode mode)
     apply();
 }
 
+void ThemeManager::setReducedMotion(bool on)
+{
+    m_reducedMotion = on;
+    QSettings().setValue(QStringLiteral("appearance/reduceMotion"), on);
+}
+
 void ThemeManager::toggleLightDark() { setMode(m_dark ? Mode::Light : Mode::Dark); }
 
 void ThemeManager::setActiveApp(std::optional<ApplicationManager::AppId> app)

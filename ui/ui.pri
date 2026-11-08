@@ -6,7 +6,7 @@ HEADERS += \
     $$PWD/widgets/recentlist.h $$PWD/widgets/statusbar.h \
     $$PWD/ribbon/ribbonbutton.h $$PWD/ribbon/ribbon.h $$PWD/ribbon/colormenu.h \
     $$PWD/workspace/workspace.h \
-    $$PWD/launcher/launcherpage.h $$PWD/launcher/workspacepage.h
+    $$PWD/launcher/launcherpage.h $$PWD/dialogs/appdialogs.h
 SOURCES += \
     $$PWD/mainwindow.cpp $$PWD/titlebar/titlebar.cpp \
     $$PWD/widgets/iconbutton.cpp $$PWD/widgets/appcard.cpp $$PWD/widgets/appglyph.cpp \
@@ -15,4 +15,4 @@ SOURCES += \
     $$PWD/widgets/statusbar.cpp \
     $$PWD/ribbon/ribbonbutton.cpp $$PWD/ribbon/ribbon.cpp $$PWD/ribbon/colormenu.cpp \
     $$PWD/workspace/workspace.cpp \
-    $$PWD/launcher/launcherpage.cpp $$PWD/launcher/workspacepage.cpp
+    $$PWD/launcher/launcherpage.cpp $$PWD/dialogs/appdialogs.cpp

@@ -101,7 +101,7 @@ Workspace::Workspace(ApplicationManager::AppId id, QWidget *parent) : QWidget(pa
 QAction *Workspace::makeAction(const QString &text, const QString &icon, const QKeySequence &sc, bool checkable, bool edits)
 {
     auto *a = new QAction(text, this);
-    a->setProperty("icon", icon);
+    a->setProperty("iconName", icon);
     a->setCheckable(checkable);
     if (!sc.isEmpty()) { a->setShortcut(sc); a->setShortcutContext(Qt::WindowShortcut); }
     addAction(a);

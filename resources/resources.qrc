@@ -5,6 +5,8 @@
         <file>icons/align-justify.svg</file>
         <file>icons/align-left.svg</file>
         <file>icons/align-right.svg</file>
+        <file>icons/animation.svg</file>
+        <file>icons/apply-all.svg</file>
         <file>icons/arrow.svg</file>
         <file>icons/back.svg</file>
         <file>icons/background.svg</file>
@@ -17,6 +19,7 @@
         <file>icons/clear-format.svg</file>
         <file>icons/clock.svg</file>
         <file>icons/close.svg</file>
+        <file>icons/code.svg</file>
         <file>icons/col-delete.svg</file>
         <file>icons/col-left.svg</file>
         <file>icons/col-right.svg</file>
@@ -30,6 +33,7 @@
         <file>icons/file-text.svg</file>
         <file>icons/fill-down.svg</file>
         <file>icons/fill-right.svg</file>
+        <file>icons/fill.svg</file>
         <file>icons/find.svg</file>
         <file>icons/fit-width.svg</file>
         <file>icons/folder.svg</file>
@@ -41,15 +45,19 @@
         <file>icons/hash.svg</file>
         <file>icons/header.svg</file>
         <file>icons/heading.svg</file>
+        <file>icons/help.svg</file>
         <file>icons/highlight.svg</file>
-        <file>icons/image.svg</file>
+        <file>icons/hourglass.svg</file>
         <file>icons/image-export.svg</file>
+        <file>icons/image.svg</file>
         <file>icons/indent.svg</file>
         <file>icons/info.svg</file>
         <file>icons/italic.svg</file>
+        <file>icons/keyboard.svg</file>
         <file>icons/layout.svg</file>
-        <file>icons/line.svg</file>
         <file>icons/line-spacing.svg</file>
+        <file>icons/line-weight.svg</file>
+        <file>icons/line.svg</file>
         <file>icons/link.svg</file>
         <file>icons/list-bullet.svg</file>
         <file>icons/list-number.svg</file>
@@ -69,13 +77,17 @@
         <file>icons/orientation-landscape.svg</file>
         <file>icons/orientation-portrait.svg</file>
         <file>icons/outdent.svg</file>
+        <file>icons/outline.svg</file>
         <file>icons/page-break.svg</file>
         <file>icons/page-number.svg</file>
         <file>icons/page-size.svg</file>
+        <file>icons/palette.svg</file>
         <file>icons/paste.svg</file>
         <file>icons/percent.svg</file>
+        <file>icons/play-circle.svg</file>
         <file>icons/play.svg</file>
         <file>icons/plus.svg</file>
+        <file>icons/presentation.svg</file>
         <file>icons/presenter.svg</file>
         <file>icons/rect.svg</file>
         <file>icons/redo.svg</file>
@@ -86,9 +98,10 @@
         <file>icons/row-below.svg</file>
         <file>icons/row-delete.svg</file>
         <file>icons/ruler.svg</file>
-        <file>icons/save.svg</file>
         <file>icons/save-as.svg</file>
+        <file>icons/save.svg</file>
         <file>icons/send-back.svg</file>
+        <file>icons/settings.svg</file>
         <file>icons/shield.svg</file>
         <file>icons/sidebar.svg</file>
         <file>icons/sigma.svg</file>
@@ -108,6 +121,9 @@
         <file>icons/underline.svg</file>
         <file>icons/undo.svg</file>
         <file>icons/unlink.svg</file>
+        <file>icons/valign-bottom.svg</file>
+        <file>icons/valign-middle.svg</file>
+        <file>icons/valign-top.svg</file>
         <file>icons/zoom-in.svg</file>
         <file>icons/zoom-out.svg</file>
     </qresource>

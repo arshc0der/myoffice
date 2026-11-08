@@ -29,7 +29,7 @@ const ApplicationManager::AppInfo &ApplicationManager::info(AppId id)
     return apps().at(static_cast<int>(id));
 }
 
-bool ApplicationManager::isImplemented(AppId id) { return id == AppId::Word; }
+bool ApplicationManager::isImplemented(AppId) { return true; }
 
 void ApplicationManager::openApp(AppId id)
 {

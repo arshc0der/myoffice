@@ -36,7 +36,7 @@ private:
     void insertTableDialog();
 
     QAction *m_bold, *m_italic, *m_underline, *m_strike, *m_bullets, *m_numbers;
-    QAction *m_alignL, *m_alignC, *m_alignR, *m_alignJ, *m_undo, *m_redo, *m_cut, *m_copy, *m_pageNumbers, *m_viewMode;
+    QAction *m_alignL, *m_alignC, *m_alignR, *m_alignJ, *m_undo, *m_redo, *m_cut, *m_copy, *m_pageNumbers, *m_viewMode, *m_rulerAct;
     QFontComboBox *m_fontBox;
     QComboBox *m_sizeBox, *m_styleBox;
     RibbonButton *m_colorBtn, *m_highlightBtn;

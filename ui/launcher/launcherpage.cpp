@@ -63,7 +63,7 @@ LauncherPage::LauncherPage(QWidget *parent) : QWidget(parent)
     hostCol->addWidget(m_recentTitle);
     hostCol->addWidget(recent);
 
-    m_footer = new QLabel(tr("MyOffice 0.3.0  ·  MyWord and MyExcel are available. MyPowerPoint arrives in the next version."), this);
+    m_footer = new QLabel(tr("MyOffice 0.4.0  ·  MyWord, MyExcel and MyPowerPoint  ·  github.com/arshc0der/myoffice"), this);
     m_footer->setFont(theme.uiFont(Design::Type::caption));
     m_footer->setAlignment(Qt::AlignHCenter);
 

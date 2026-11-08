@@ -1,4 +1,4 @@
-# MyOffice - root qmake project
+# MyOffice - root qmake project  (https://github.com/arshc0der/myoffice)
 # Requires Qt >= 6.5 with the Svg module and Qt private headers (qt6-base-private-dev on Debian/Ubuntu).
 TEMPLATE = app
 TARGET   = MyOffice
@@ -11,13 +11,12 @@ CONFIG  -= app_bundle
 INCLUDEPATH += $$PWD
 msvc: QMAKE_CXXFLAGS += /utf-8
 
-RESOURCES += resources/resources.qrc \
-    resources.qrc \
-    resources/resources.qrc
+RESOURCES += resources/resources.qrc
 
 include(core/core.pri)
 include(ui/ui.pri)
 include(myword/myword.pri)
 include(myexcel/myexcel.pri)
+include(myppt/myppt.pri)
 
 SOURCES += main.cpp

@@ -30,6 +30,7 @@ public:
     bool inApp() const { return m_app.has_value(); }
 
     bool reducedMotion() const { return m_reducedMotion; }
+    void setReducedMotion(bool on);
     int duration(int ms) const { return m_reducedMotion ? 0 : ms; }
     QFont uiFont(qreal pointSize, QFont::Weight weight = QFont::Normal) const;
 
