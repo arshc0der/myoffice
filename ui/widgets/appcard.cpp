@@ -103,5 +103,5 @@ void AppCard::paintEvent(QPaintEvent *)
     p.setPen(open);
     p.setFont(theme.uiFont(Design::Type::body, QFont::DemiBold));
     p.drawText(QRectF(card.left() + pad + 5 * h, card.bottom() - 46, card.width() - 2 * pad, 24),
-               Qt::AlignLeft | Qt::AlignVCenter, tr("Open  →"));
+               Qt::AlignLeft | Qt::AlignVCenter, tr("New  →"));
 }

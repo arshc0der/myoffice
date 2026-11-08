@@ -1,8 +1,8 @@
-# MyOffice - root qmake project (Milestone 1: application shell)
-# Requires Qt >= 6.5 (QStyleHints::colorScheme) and a C++17 compiler.
+# MyOffice - root qmake project
+# Requires Qt >= 6.5 with the Svg module and Qt private headers (qt6-base-private-dev on Debian/Ubuntu).
 TEMPLATE = app
 TARGET   = MyOffice
-QT      += core gui widgets concurrent
+QT      += core gui widgets concurrent svg gui-private
 CONFIG  += c++17 warn_on
 CONFIG  -= app_bundle
 
@@ -11,10 +11,13 @@ CONFIG  -= app_bundle
 INCLUDEPATH += $$PWD
 msvc: QMAKE_CXXFLAGS += /utf-8
 
+RESOURCES += resources/resources.qrc \
+    resources.qrc \
+    resources/resources.qrc
+
 include(core/core.pri)
 include(ui/ui.pri)
+include(myword/myword.pri)
+include(myexcel/myexcel.pri)
 
 SOURCES += main.cpp
-
-# Module projects (myword/, myexcel/, mypowerpoint/) are added as static-library
-# subprojects in their own phases and linked here.

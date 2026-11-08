@@ -1,20 +1,32 @@
 #include "mainwindow.h"
 
-#include <QKeyEvent>
+#include <QCloseEvent>
+#include <QDragEnterEvent>
+#include <QFileDialog>
+#include <QFileInfo>
+#include <QMessageBox>
+#include <QMimeData>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QSettings>
 #include <QShortcut>
+#include <QUrl>
 #include <QVBoxLayout>
 #include <QWindow>
 
+#include "core/autosavemanager.h"
 #include "core/designtokens.h"
+#include "core/filemanager.h"
 #include "core/thememanager.h"
 #include "launcher/launcherpage.h"
 #include "launcher/workspacepage.h"
+#include "myexcel/excelworkspace.h"
+#include "myword/document/worddocument.h"
+#include "myword/editor/wordworkspace.h"
 #include "titlebar/titlebar.h"
 #include "widgets/fadestack.h"
+#include "widgets/toast.h"
 
-// Inner rounded body of the window.
 class Surface : public QWidget
 {
 public:
@@ -32,8 +44,7 @@ protected:
         p.setRenderHint(QPainter::Antialiasing);
         p.setBrush(pal.window);
         p.setPen(QPen(pal.border, 1));
-        const QRectF r = QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5);
-        p.drawRoundedRect(r, m_radius, m_radius);
+        p.drawRoundedRect(QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5), m_radius, m_radius);
     }
 
 private:
@@ -48,51 +59,149 @@ MainWindow::MainWindow()
     setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
     setAttribute(Qt::WA_TranslucentBackground);
     setMouseTracking(true);
-    setMinimumSize(900, 600);
-    resize(1120, 720);
+    setAcceptDrops(true);
+    setMinimumSize(1100, 700);
+    resize(1280, 800);
 
     m_surface = new Surface(this);
     m_titleBar = new TitleBar(m_surface);
     m_stack = new FadeStack(m_surface);
     m_launcher = new LauncherPage(m_stack);
-    m_workspace = new WorkspacePage(m_stack);
+    m_placeholder = new WorkspacePage(m_stack);
     m_stack->addWidget(m_launcher);
-    m_stack->addWidget(m_workspace);
+    m_stack->addWidget(m_placeholder);
 
     auto *inner = new QVBoxLayout(m_surface);
     inner->setContentsMargins(1, 1, 1, 1);
     inner->setSpacing(0);
     inner->addWidget(m_titleBar);
     inner->addWidget(m_stack, 1);
-
     auto *outer = new QVBoxLayout(this);
     outer->setContentsMargins(shadowMargin, shadowMargin, shadowMargin, shadowMargin);
     outer->addWidget(m_surface);
 
+    auto &apps = ApplicationManager::instance();
     connect(m_titleBar, &TitleBar::minimizeRequested, this, &QWidget::showMinimized);
     connect(m_titleBar, &TitleBar::maximizeToggleRequested, this, &MainWindow::toggleMaximize);
     connect(m_titleBar, &TitleBar::closeRequested, this, &QWidget::close);
-    connect(m_titleBar, &TitleBar::backRequested, &ApplicationManager::instance(), &ApplicationManager::goHome);
-    connect(&ApplicationManager::instance(), &ApplicationManager::navigationChanged, this, &MainWindow::onNavigationChanged);
+    connect(m_titleBar, &TitleBar::backRequested, &apps, &ApplicationManager::goHome);
+    connect(&apps, &ApplicationManager::navigationChanged, this, &MainWindow::onNavigationChanged);
     connect(&ThemeManager::instance(), &ThemeManager::themeChanged, this, qOverload<>(&QWidget::update));
+    connect(m_launcher, &LauncherPage::newRequested, this, [this](ApplicationManager::AppId id) { ApplicationManager::instance().openApp(id); });
+    connect(m_launcher, &LauncherPage::openFileRequested, this, &MainWindow::openFileDialog);
+    connect(m_launcher, &LauncherPage::openPathRequested, this, [this](const QString &p) { openFiles({ p }); });
 
-    auto *home = new QShortcut(QKeySequence(Qt::Key_Escape), this);
-    connect(home, &QShortcut::activated, &ApplicationManager::instance(), &ApplicationManager::goHome);
     auto *theme = new QShortcut(QKeySequence(QStringLiteral("Ctrl+Shift+D")), this);
     connect(theme, &QShortcut::activated, &ThemeManager::instance(), &ThemeManager::toggleLightDark);
+}
+
+WordWorkspace *MainWindow::ensureWord()
+{
+    if (!m_word) {
+        m_word = new WordWorkspace(m_stack);
+        m_stack->addWidget(m_word);
+        connect(m_word, &Workspace::allDocumentsClosed, &ApplicationManager::instance(), &ApplicationManager::goHome);
+        connect(m_word, &Workspace::openFilesRequested, this, &MainWindow::openFiles);
+    }
+    return m_word;
+}
+
+ExcelWorkspace *MainWindow::ensureExcel()
+{
+    if (!m_excel) {
+        m_excel = new ExcelWorkspace(m_stack);
+        m_stack->addWidget(m_excel);
+        connect(m_excel, &Workspace::allDocumentsClosed, &ApplicationManager::instance(), &ApplicationManager::goHome);
+        connect(m_excel, &Workspace::openFilesRequested, this, &MainWindow::openFiles);
+    }
+    return m_excel;
 }
 
 void MainWindow::onNavigationChanged()
 {
     auto &mgr = ApplicationManager::instance();
     if (mgr.atHome()) {
+        ThemeManager::instance().setActiveApp(std::nullopt);
         m_titleBar->setContext({});
         m_stack->fadeTo(m_launcher);
-    } else {
-        m_workspace->showApp(mgr.currentApp());
-        m_titleBar->setContext(ApplicationManager::info(mgr.currentApp()).name);
-        m_stack->fadeTo(m_workspace);
+        return;
     }
+    const auto id = mgr.currentApp();
+    ThemeManager::instance().setActiveApp(id);
+    m_titleBar->setContext(ApplicationManager::info(id).name);
+    QWidget *page = m_placeholder;
+    if (id == ApplicationManager::AppId::Word) {
+        ensureWord();
+        if (m_word->documentCount() == 0) m_word->newDocument();
+        page = m_word;
+    } else if (id == ApplicationManager::AppId::Excel) {
+        ensureExcel();
+        if (m_excel->documentCount() == 0) m_excel->newDocument();
+        page = m_excel;
+    } else {
+        m_placeholder->showApp(id);
+    }
+    m_stack->fadeTo(page);
+}
+
+void MainWindow::openFileDialog()
+{
+    const QString dir = QSettings().value(QStringLiteral("files/lastDir")).toString();
+    const QStringList files = QFileDialog::getOpenFileNames(this, tr("Open"), dir, FileManager::allSupportedFilter());
+    if (files.isEmpty()) return;
+    QSettings().setValue(QStringLiteral("files/lastDir"), QFileInfo(files.first()).absolutePath());
+    openFiles(files);
+}
+
+void MainWindow::openFiles(const QStringList &paths)
+{
+    const bool view = QSettings().value(QStringLiteral("files/openInViewMode"), true).toBool();
+    std::optional<ApplicationManager::AppId> target;
+    for (const QString &p : paths) {
+        const auto route = FileManager::route(p);
+        if (!route.ok) {
+            Toast::show(this, QFileInfo(p).fileName() + QStringLiteral(": ") + route.error, Toast::Error, 5000);
+            FileManager::instance().removeRecent(p);
+            continue;
+        }
+        if (route.app == ApplicationManager::AppId::Word) { ensureWord()->openFile(p, view); target = route.app; }
+        else if (route.app == ApplicationManager::AppId::Excel) { ensureExcel()->openFile(p, view); target = route.app; }
+        else Toast::show(this, tr("MyPowerPoint is not available in this version yet — .pptx support is next."), Toast::Info, 4500);
+    }
+    if (target) ApplicationManager::instance().openApp(*target);
+}
+
+void MainWindow::checkRecovery()
+{
+    QStringList ids;
+    for (const QString &id : AutosaveManager::instance().recoverableIds()) if (id.startsWith(QLatin1String("word-"))) ids << id;
+    if (ids.isEmpty()) return;
+    const auto r = QMessageBox::question(this, tr("MyOffice"), tr("MyOffice found %n unsaved document(s) from a previous session. Recover them?", "", ids.size()));
+    for (const QString &id : ids) {
+        if (r == QMessageBox::Yes) {
+            auto *d = new WordDocument;
+            ensureWord()->addDocument(d);
+            d->loadRecovery(AutosaveManager::instance().readRecovery(id), id);
+        } else {
+            AutosaveManager::instance().discardRecovery(id);
+        }
+    }
+    if (r == QMessageBox::Yes) ApplicationManager::instance().openApp(ApplicationManager::AppId::Word);
+}
+
+void MainWindow::closeEvent(QCloseEvent *e)
+{
+    for (Workspace *w : { static_cast<Workspace *>(m_word), static_cast<Workspace *>(m_excel) })
+        if (w && !w->requestCloseAll()) { e->ignore(); return; }
+    e->accept();
+}
+
+void MainWindow::dragEnterEvent(QDragEnterEvent *e) { if (e->mimeData()->hasUrls()) e->acceptProposedAction(); }
+void MainWindow::dropEvent(QDropEvent *e)
+{
+    QStringList paths;
+    for (const QUrl &u : e->mimeData()->urls()) if (u.isLocalFile()) paths << u.toLocalFile();
+    if (!paths.isEmpty()) openFiles(paths);
 }
 
 void MainWindow::toggleMaximize() { isMaximized() ? showNormal() : showMaximized(); }
@@ -100,9 +209,11 @@ void MainWindow::toggleMaximize() { isMaximized() ? showNormal() : showMaximized
 void MainWindow::applyWindowState()
 {
     const bool flat = isMaximized() || isFullScreen();
-    layout()->setContentsMargins(flat ? 0 : shadowMargin, flat ? 0 : shadowMargin,
-                                 flat ? 0 : shadowMargin, flat ? 0 : shadowMargin);
-    m_surface->setRadius(flat ? 0 : Design::Window::cornerRadius);
+    const int m = flat ? 0 : shadowMargin;
+    layout()->setContentsMargins(m, m, m, m);
+    const int radius = flat ? 0 : Design::Window::cornerRadius;
+    m_surface->setRadius(radius);
+    m_titleBar->setRadius(radius);
     m_titleBar->setMaximizedState(isMaximized());
     update();
 }
@@ -116,15 +227,13 @@ void MainWindow::changeEvent(QEvent *e)
 void MainWindow::paintEvent(QPaintEvent *)
 {
     if (isMaximized() || isFullScreen()) return;
-    // Layered translucent rounded rects approximate a blurred drop shadow without an offscreen pass.
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing);
     p.setPen(Qt::NoPen);
     const bool dark = ThemeManager::instance().isDark();
     const QRectF body = QRectF(rect()).adjusted(shadowMargin, shadowMargin, -shadowMargin, -shadowMargin);
     for (int i = shadowMargin - 1; i >= 1; --i) {
-        const int alpha = int((dark ? 60 : 30) * (1.0 - double(i) / shadowMargin) * 0.35);
-        p.setBrush(QColor(0, 0, 0, alpha));
+        p.setBrush(QColor(0, 0, 0, int((dark ? 60 : 30) * (1.0 - double(i) / shadowMargin) * 0.35)));
         p.drawRoundedRect(body.adjusted(-i, -i + 2, i, i + 2), Design::Window::cornerRadius + i, Design::Window::cornerRadius + i);
     }
 }

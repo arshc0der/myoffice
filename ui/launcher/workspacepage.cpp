@@ -43,7 +43,7 @@ void WorkspacePage::showApp(ApplicationManager::AppId id)
 {
     m_id = id;
     const auto &info = ApplicationManager::info(id);
-    static const char *phases[] = { "Phase 2", "Phase 3", "Phase 4" };
+    static const char *phases[] = { "an earlier phase", "an earlier phase", "the next version" };
     m_title->setText(info.name);
     m_status->setText(tr("The %1 workspace is not implemented yet. It is scheduled for %2 of the build plan.")
                           .arg(info.name, tr(phases[static_cast<int>(id)])));

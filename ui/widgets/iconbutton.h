@@ -2,16 +2,16 @@
 #include <QPropertyAnimation>
 #include <QWidget>
 
-// Custom-painted, keyboard-accessible icon button with animated hover feedback.
+// Custom-painted SVG icon button with animated hover, press feedback and keyboard focus.
 class IconButton : public QWidget
 {
     Q_OBJECT
     Q_PROPERTY(qreal hover READ hover WRITE setHover)
 public:
-    enum class Glyph { Minimize, Maximize, Restore, Close, Moon, Sun, Back };
-
-    IconButton(Glyph glyph, const QString &accessibleName, QWidget *parent = nullptr);
-    void setGlyph(Glyph glyph);
+    IconButton(const QString &iconName, const QString &accessibleName, QWidget *parent = nullptr);
+    void setIconName(const QString &name) { m_icon = name; update(); }
+    void setOnChrome(bool on) { m_onChrome = on; update(); }
+    void setIconSize(int px) { m_size = px; update(); }
     qreal hover() const { return m_hover; }
     void setHover(qreal v) { m_hover = v; update(); }
     QSize sizeHint() const override { return { 40, 30 }; }
@@ -31,7 +31,9 @@ protected:
 
 private:
     void animateTo(qreal target);
-    Glyph m_glyph;
+    QString m_icon;
+    int m_size = 16;
+    bool m_onChrome = false;
     qreal m_hover = 0.0;
     bool m_pressed = false;
     QPropertyAnimation m_anim;

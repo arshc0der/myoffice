@@ -1,16 +1,18 @@
 #pragma once
 #include <QObject>
 #include <QStringList>
+#include <optional>
 
 #include "applicationmanager.h"
 
-// Shared file layer: recent files, open-time validation and file dialog filters.
+// Shared file layer: recent files, routing/validation of files to the right application.
 class FileManager : public QObject
 {
     Q_OBJECT
 public:
-    struct ValidationResult {
+    struct Route {
         bool ok = false;
+        ApplicationManager::AppId app = ApplicationManager::AppId::Word;
         QString error;
     };
 
@@ -24,9 +26,11 @@ public:
     void removeRecent(const QString &path);
     void clearRecent();
 
-    // Checks existence, permissions, size, extension and (for Office Open XML) the ZIP signature.
-    static ValidationResult validateForOpen(const QString &path, ApplicationManager::AppId app);
-    static QString openFilter(ApplicationManager::AppId app);
+    // Works out which app should open `path` and validates it (exists, readable, size,
+    // ZIP signature for docx/xlsx/pptx). Unknown extensions open in MyWord if they look like text.
+    static Route route(const QString &path);
+    static QString allSupportedFilter();
+    static bool looksLikeText(const QString &path);
 
 signals:
     void recentFilesChanged();

@@ -16,14 +16,15 @@ TitleBar::TitleBar(QWidget *parent) : QWidget(parent)
     setFixedHeight(Design::Window::titleBarHeight);
     auto &theme = ThemeManager::instance();
 
-    m_back = new IconButton(IconButton::Glyph::Back, tr("Back to launcher"), this);
+    m_back = new IconButton(QStringLiteral("back"), tr("Back to launcher"), this);
     m_logo = new QLabel(this);
     m_brand = new QLabel(QStringLiteral("MyOffice"), this);
     m_context = new QLabel(this);
-    m_theme = new IconButton(IconButton::Glyph::Moon, tr("Toggle light/dark theme"), this);
-    m_min = new IconButton(IconButton::Glyph::Minimize, tr("Minimize"), this);
-    m_max = new IconButton(IconButton::Glyph::Maximize, tr("Maximize"), this);
-    m_close = new IconButton(IconButton::Glyph::Close, tr("Close"), this);
+    m_theme = new IconButton(QStringLiteral("moon"), tr("Toggle light/dark theme"), this);
+    m_min = new IconButton(QStringLiteral("minimize"), tr("Minimize"), this);
+    m_max = new IconButton(QStringLiteral("maximize"), tr("Maximize"), this);
+    m_close = new IconButton(QStringLiteral("close"), tr("Close"), this);
+    for (IconButton *b : { m_back, m_theme, m_min, m_max, m_close }) b->setOnChrome(true);
     for (QLabel *l : { m_logo, m_brand, m_context }) l->setAttribute(Qt::WA_TransparentForMouseEvents);
     m_back->hide();
     m_context->hide();
@@ -57,11 +58,12 @@ void TitleBar::refreshTheme()
 {
     const auto &theme = ThemeManager::instance();
     const Palette &pal = theme.palette();
-    setTextColor(m_brand, pal.text);
-    setTextColor(m_context, pal.textSecondary);
-    m_theme->setGlyph(theme.isDark() ? IconButton::Glyph::Sun : IconButton::Glyph::Moon);
+    setTextColor(m_brand, pal.chromeText);
+    QColor sec = pal.chromeText;
+    sec.setAlphaF(0.75);
+    setTextColor(m_context, sec);
+    m_theme->setIconName(theme.isDark() ? QStringLiteral("sun") : QStringLiteral("moon"));
 
-    // Logo: accent rounded square with an "M", rendered at device resolution.
     const qreal dpr = devicePixelRatioF();
     const int size = 22;
     QPixmap pm(QSize(size, size) * dpr);
@@ -70,14 +72,24 @@ void TitleBar::refreshTheme()
     QPainter p(&pm);
     p.setRenderHint(QPainter::Antialiasing);
     p.setPen(Qt::NoPen);
-    p.setBrush(pal.accent);
+    p.setBrush(theme.inApp() ? QColor(Qt::white) : pal.accent);
     p.drawRoundedRect(QRectF(0, 0, size, size), 6, 6);
-    p.setPen(Qt::white);
-    QFont f = theme.uiFont(11, QFont::Bold);
-    p.setFont(f);
+    p.setPen(theme.inApp() ? pal.chrome : QColor(Qt::white));
+    p.setFont(theme.uiFont(11, QFont::Bold));
     p.drawText(QRectF(0, 0, size, size), Qt::AlignCenter, QStringLiteral("M"));
     p.end();
     m_logo->setPixmap(pm);
+    update();
+}
+
+void TitleBar::paintEvent(QPaintEvent *)
+{
+    QPainter p(this);
+    p.setRenderHint(QPainter::Antialiasing);
+    p.setPen(Qt::NoPen);
+    p.setBrush(ThemeManager::instance().palette().chrome);
+    p.setClipRect(rect());
+    p.drawRoundedRect(QRectF(0, 0, width(), height() + m_radius), m_radius, m_radius);
 }
 
 void TitleBar::setContext(const QString &appName)
@@ -89,14 +101,12 @@ void TitleBar::setContext(const QString &appName)
 
 void TitleBar::setMaximizedState(bool maximized)
 {
-    m_max->setGlyph(maximized ? IconButton::Glyph::Restore : IconButton::Glyph::Maximize);
-    m_max->setAccessibleName(maximized ? tr("Restore") : tr("Maximize"));
+    m_max->setIconName(maximized ? QStringLiteral("restore") : QStringLiteral("maximize"));
 }
 
 void TitleBar::mousePressEvent(QMouseEvent *e)
 {
-    if (e->button() == Qt::LeftButton && window()->windowHandle())
-        window()->windowHandle()->startSystemMove(); // native drag: snapping, edge tiling, etc.
+    if (e->button() == Qt::LeftButton && window()->windowHandle()) window()->windowHandle()->startSystemMove();
 }
 
 void TitleBar::mouseDoubleClickEvent(QMouseEvent *e)

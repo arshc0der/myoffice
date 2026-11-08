@@ -17,11 +17,13 @@ public:
         QString detail;
         QColor accent;
         QStringList extensions; // lower-case, no dot
+        QString noun;           // "Document", "Workbook", ...
     };
 
     static ApplicationManager &instance();
     static const QList<AppInfo> &apps();
     static const AppInfo &info(AppId id);
+    static bool isImplemented(AppId id);
 
     bool atHome() const { return m_atHome; }
     AppId currentApp() const { return m_current; }
