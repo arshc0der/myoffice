@@ -15,7 +15,7 @@ Thank you for helping! This guide explains how to set up, what the code should l
 1. Install Qt 6.5+ (with Svg and private headers) and a C++17 compiler — [docs/BUILDING.md](docs/BUILDING.md).
 2. Fork the repository, then clone your fork:
    ```bash
-   git clone https://github.com/arshc0der/myoffice.git && cd myoffice
+   git clone https://github.com/<you>/myoffice.git && cd myoffice
    git remote add upstream https://github.com/arshc0der/myoffice.git
    ```
 3. Create a branch from `main`: `git switch -c fix/word-table-merge`.
