@@ -10,6 +10,11 @@
 #include <QMessageBox>
 #include <QSignalBlocker>
 #include <QSlider>
+#include <QHash>
+#include <QRegularExpression>
+#include <QSet>
+#include <algorithm>
+#include <cmath>
 #include <QSpinBox>
 #include <QTextEdit>
 
@@ -283,21 +288,82 @@ void WordWorkspace::buildLayout()
 }
 
 // ------------------------------------------------------------------ Review
+namespace {
+int countSyllables(const QString &w)
+{
+    int n = 0;
+    bool prevVowel = false;
+    for (QChar ch : w) {
+        const bool v = QStringLiteral("aeiouy").contains(ch);
+        if (v && !prevVowel) ++n;
+        prevVowel = v;
+    }
+    if (w.endsWith(QLatin1Char('e')) && n > 1 && !w.endsWith(QLatin1String("le"))) --n; // silent e
+    return qMax(1, n);
+}
+}
+
+// Document statistics with reading time, readability (Flesch reading ease) and the most used words.
 void WordWorkspace::showWordCount()
 {
     auto *d = wordDoc();
     if (!d) return;
     const auto s = d->stats();
-    QMessageBox::information(this, tr("Word count"),
-        tr("<table cellpadding=4><tr><td>Pages</td><td><b>%1</b></td></tr><tr><td>Words</td><td><b>%2</b></td></tr>"
-           "<tr><td>Characters (with spaces)</td><td><b>%3</b></td></tr><tr><td>Characters (no spaces)</td><td><b>%4</b></td></tr>"
-           "<tr><td>Paragraphs</td><td><b>%5</b></td></tr></table>").arg(s.pages).arg(s.words).arg(s.chars).arg(s.charsNoSpaces).arg(s.paragraphs));
+    const QString text = d->edit()->document()->toPlainText();
+
+    int sentences = 0;
+    bool inEnd = false;
+    for (QChar ch : text) {
+        if (ch == QLatin1Char('.') || ch == QLatin1Char('!') || ch == QLatin1Char('?')) { if (!inEnd) { ++sentences; inEnd = true; } }
+        else if (!ch.isSpace()) inEnd = false;
+    }
+    if (sentences == 0 && s.words > 0) sentences = 1;
+
+    static const QSet<QString> stop = { "the", "and", "for", "that", "this", "with", "are", "was", "not", "you", "from", "have", "has", "had", "but", "its", "his", "her", "they", "them" };
+    QHash<QString, int> freq;
+    int syllables = 0, letters = 0, words = 0;
+    static const QRegularExpression wordRe(QStringLiteral("[\\p{L}']+"));
+    auto it = wordRe.globalMatch(text);
+    while (it.hasNext()) {
+        const QString w = it.next().captured().toLower();
+        ++words;
+        letters += w.size();
+        syllables += countSyllables(w);
+        if (w.size() > 3 && !stop.contains(w)) ++freq[w];
+    }
+    const double flesch = (words > 0 && sentences > 0) ? 206.835 - 1.015 * (double(words) / sentences) - 84.6 * (double(syllables) / words) : 0.0;
+    QString level = tr("n/a");
+    if (words > 0) level = flesch >= 80 ? tr("Easy") : flesch >= 60 ? tr("Standard") : flesch >= 40 ? tr("Fairly difficult") : tr("Difficult");
+    const int minutes = qMax(words > 0 ? 1 : 0, int(std::ceil(words / 200.0)));
+
+    QList<QPair<int, QString>> top;
+    for (auto f = freq.constBegin(); f != freq.constEnd(); ++f) top.append({ f.value(), f.key() });
+    std::sort(top.begin(), top.end(), [](const auto &a, const auto &b) { return a.first != b.first ? a.first > b.first : a.second < b.second; });
+    QString topHtml;
+    for (int i = 0; i < qMin(5, int(top.size())); ++i) topHtml += QStringLiteral("%1 (%2)%3").arg(top[i].second.toHtmlEscaped()).arg(top[i].first).arg(i < 4 && i + 1 < top.size() ? QStringLiteral(", ") : QString());
+    if (topHtml.isEmpty()) topHtml = QStringLiteral("—");
+
+    QMessageBox box(this);
+    box.setWindowTitle(tr("Document statistics"));
+    box.setIcon(QMessageBox::Information);
+    box.setTextFormat(Qt::RichText);
+    box.setText(tr("<table cellpadding='4'>"
+                   "<tr><td>Pages</td><td><b>%1</b></td><td>&nbsp;&nbsp;Words</td><td><b>%2</b></td></tr>"
+                   "<tr><td>Characters (with spaces)</td><td><b>%3</b></td><td>&nbsp;&nbsp;Characters (no spaces)</td><td><b>%4</b></td></tr>"
+                   "<tr><td>Paragraphs</td><td><b>%5</b></td><td>&nbsp;&nbsp;Sentences</td><td><b>%6</b></td></tr>"
+                   "<tr><td>Reading time</td><td><b>%7 min</b></td><td>&nbsp;&nbsp;Avg. word length</td><td><b>%8</b></td></tr>"
+                   "<tr><td>Readability (Flesch)</td><td><b>%9</b></td><td>&nbsp;&nbsp;Level</td><td><b>%10</b></td></tr>"
+                   "</table><p>Most used words: %11</p>")
+                .arg(s.pages).arg(s.words).arg(s.chars).arg(s.charsNoSpaces).arg(s.paragraphs).arg(sentences)
+                .arg(minutes).arg(words > 0 ? QString::number(double(letters) / words, 'f', 1) : QStringLiteral("0"))
+                .arg(words > 0 ? QString::number(flesch, 'f', 0) : QStringLiteral("0")).arg(level).arg(topHtml));
+    box.exec();
 }
 
 void WordWorkspace::buildReview()
 {
     RibbonPage *page = m_ribbon->addPage(tr("Review"));
-    QAction *wc = makeAction(tr("Word\nCount"), QStringLiteral("hash"));
+    QAction *wc = makeAction(tr("Document\nStatistics"), QStringLiteral("hash"));
     connect(wc, &QAction::triggered, this, &WordWorkspace::showWordCount);
     page->addGroup(tr("Proofing"))->addLarge(wc);
 

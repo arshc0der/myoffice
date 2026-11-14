@@ -4,11 +4,16 @@
 #include <memory>
 #include <vector>
 
+#include <QRect>
+#include <QTimer>
+
+#include "myexcel/spreadsheet/chartpanel.h"
 #include "myexcel/spreadsheet/sheetmodel.h"
 #include "ui/workspace/workspace.h"
 
 class QDialog;
 class QLineEdit;
+class QSplitter;
 class QStackedWidget;
 class QTabBar;
 class QTableView;
@@ -19,6 +24,8 @@ class ExcelDocument : public DocumentView
     Q_OBJECT
 public:
     struct State { bool canUndo = false, canRedo = false, hasSelection = false; CellStyle style; QString sheetName; };
+
+    struct SelStats { int cells = 0, numeric = 0; double sum = 0, min = 0, max = 0; };
 
     explicit ExcelDocument(QWidget *parent = nullptr);
     bool eventFilter(QObject *o, QEvent *e) override;
@@ -60,6 +67,14 @@ public:
     void findReplace();
     void focusFormulaBar(const QString &prefill);
 
+    // Analytics
+    SelStats selectionStats() const;
+    void showStatistics();
+    void showChart(ChartView::Type type);
+    void hideChart();
+    bool chartVisible() const;
+    void exportChartImage();
+
 private:
     struct Page {
         QString name;
@@ -81,6 +96,9 @@ private:
     bool parseBytes(const QString &path, const QByteArray &data, QString *error);
     bool exportPdf(const QString &path, QString *error);
     void goToCell(int r, int c);
+    ChartData buildChart(Page *p, const QRect &r) const;
+    QRect dataRegionAround(Page *p, int row, int col) const;
+    void refreshChart();
 
     QString m_path, m_untitled;
     bool m_viewMode = false, m_extraDirty = false, m_gridlines = true;
@@ -91,4 +109,9 @@ private:
     QTabBar *m_tabs;
     QLineEdit *m_nameBox, *m_formulaBar;
     QDialog *m_findDlg = nullptr;
+    QSplitter *m_split = nullptr;
+    ChartPanel *m_chart = nullptr;
+    QTimer m_chartTimer;
+    QRect m_chartRect;
+    int m_chartPage = 0;
 };

@@ -6,7 +6,7 @@
 
 [Repository](https://github.com/arshc0der/myoffice) · [Documentation](docs/README.md) · [Contributing](CONTRIBUTING.md) · [Report a bug](https://github.com/arshc0der/myoffice/issues)
 
-![C++17](https://img.shields.io/badge/C%2B%2B-17-blue) ![Qt](https://img.shields.io/badge/Qt-6.5%2B-41cd52) ![Build](https://img.shields.io/badge/build-qmake-orange) ![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-lightgrey)
+![Version](https://img.shields.io/badge/version-0.5.0-informational) ![C++17](https://img.shields.io/badge/C%2B%2B-17-blue) ![Qt](https://img.shields.io/badge/Qt-6.5%2B-41cd52) ![Build](https://img.shields.io/badge/build-qmake-orange) ![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-lightgrey)
 
 </div>
 
@@ -26,6 +26,7 @@ MyOffice is a three-in-one office suite built with **C++17** and **Qt 6 Widgets*
 
 - **Microsoft-style ribbon** with File / Home / Insert / … tabs, grouped commands, split buttons and colour menus.
 - **Browser-style document tabs** — open many documents per app; reorder by drag, close with the tab button or middle click, unsaved-changes dot.
+- **Office-style launcher** — navigation rail, "blank document/workbook/presentation" tiles and a *Recent* list with *Date modified*.
 - **A different colour theme per app**, plus light, dark and follow-system modes.
 - **Open any file in View mode.** Files open read-only with an *Enable editing* banner. Works from the launcher, recent list, drag-and-drop and the command line.
 - **Safe by default** — atomic saves, unsaved-change prompts, crash-recovery autosave (MyWord), input validation (size limit, ZIP signature checks).
@@ -59,13 +60,13 @@ Full instructions per platform: [docs/BUILDING.md](docs/BUILDING.md).
 <details>
 <summary><b>MyWord</b></summary>
 
-Rich text (font, size, bold/italic/underline/strike, colour, highlight) · paragraph alignment, lists, indentation, line and paragraph spacing · styles (Normal, Title, Heading 1–3, Quote) · tables with row/column insert/delete and cell merge · pictures · hyperlinks · page breaks · find & replace bar with live highlighting · page setup (size, orientation, margins) · ruler · zoom (25 %–400 %) · word count · autosave with crash recovery · multi-tab.
+Rich text (font, size, bold/italic/underline/strike, colour, highlight) · paragraph alignment, lists, indentation, line and paragraph spacing · styles (Normal, Title, Heading 1–3, Quote) · tables with row/column insert/delete and cell merge · pictures · hyperlinks · page breaks · find & replace bar with live highlighting · page setup (size, orientation, margins) · ruler · **document statistics** (reading time, Flesch readability, most used words) · zoom (25 %–400 %) · word count · autosave with crash recovery · multi-tab.
 </details>
 
 <details>
 <summary><b>MyExcel</b></summary>
 
-1,048,576 × 16,384 sparse grid · formula bar and name box · multiple sheets · formulas (`SUM AVERAGE MIN MAX COUNT COUNTA IF AND OR NOT ROUND ABS SQRT POWER MOD INT CONCAT CONCATENATE LEFT RIGHT LEN UPPER LOWER TRIM TODAY NOW`) with ranges, operators, automatic recalculation and cycle detection · undo/redo · copy/cut/paste with relative-reference shifting · fill down/right · AutoSum · sort · insert/delete rows and columns (formulas are rewritten) · formats (bold/italic/underline, colours, alignment, number, percent, currency, date, text) · find & replace · zoom · gridline toggle.
+**charts** (column, line, area, pie, donut — Office palette, hover tooltips, live updates, PNG export) · **selection statistics** in the status bar and a **Statistics** dialog (mean, median, std. deviation, histogram) · 1,048,576 × 16,384 sparse grid · formula bar and name box · multiple sheets · formulas (`SUM AVERAGE MIN MAX COUNT COUNTA IF AND OR NOT ROUND ABS SQRT POWER MOD INT CONCAT CONCATENATE LEFT RIGHT LEN UPPER LOWER TRIM TODAY NOW`) with ranges, operators, automatic recalculation and cycle detection · undo/redo · copy/cut/paste with relative-reference shifting · fill down/right · AutoSum · sort · insert/delete rows and columns (formulas are rewritten) · formats (bold/italic/underline, colours, alignment, number, percent, currency, date, text) · find & replace · zoom · gridline toggle.
 </details>
 
 <details>

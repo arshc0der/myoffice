@@ -19,6 +19,8 @@
 #include <QRegularExpression>
 #include <QPdfWriter>
 #include <QSaveFile>
+#include <QSplitter>
+#include <cmath>
 #include <QSettings>
 #include <QStackedWidget>
 #include <QStyledItemDelegate>
@@ -102,7 +104,21 @@ ExcelDocument::ExcelDocument(QWidget *parent) : DocumentView(parent)
     col->setContentsMargins(0, 0, 0, 0);
     col->setSpacing(0);
     col->addLayout(bar);
-    col->addWidget(m_stack, 1);
+    m_split = new QSplitter(Qt::Horizontal, this);
+    m_split->setChildrenCollapsible(false);
+    m_split->setHandleWidth(1);
+    m_split->addWidget(m_stack);
+    m_chart = new ChartPanel(m_split);
+    m_chart->hide();
+    m_split->addWidget(m_chart);
+    m_split->setStretchFactor(0, 3);
+    m_split->setStretchFactor(1, 2);
+    col->addWidget(m_split, 1);
+    m_chartTimer.setSingleShot(true);
+    m_chartTimer.setInterval(180);
+    connect(&m_chartTimer, &QTimer::timeout, this, [this] { refreshChart(); });
+    connect(m_chart, &ChartPanel::closeRequested, this, &ExcelDocument::hideChart);
+    connect(m_chart, &ChartPanel::exportRequested, this, &ExcelDocument::exportChartImage);
     col->addLayout(tabRow);
 
     addPage(tr("Sheet1"));
@@ -157,7 +173,7 @@ ExcelDocument::Page *ExcelDocument::addPage(const QString &name)
     m_tabs->addTab(name);
     connect(p->view->selectionModel(), &QItemSelectionModel::currentChanged, this, [this] { onCurrentChanged(); });
     connect(p->view->selectionModel(), &QItemSelectionModel::selectionChanged, this, [this] { onCurrentChanged(); emit stateChanged(); });
-    connect(p->model, &QAbstractItemModel::dataChanged, this, [this] { onCurrentChanged(); });
+    connect(p->model, &QAbstractItemModel::dataChanged, this, [this] { onCurrentChanged(); if (m_chart && m_chart->isVisible()) m_chartTimer.start(); });
     Page *raw = p.get();
     m_pages.push_back(std::move(p));
     styleViews();
@@ -583,6 +599,188 @@ void ExcelDocument::renameSheet()
     m_tabs->setTabText(m_tabs->currentIndex(), name);
     m_extraDirty = true;
     emit modifiedChanged();
+}
+
+// ------------------------------------------------------------------ analytics
+ExcelDocument::SelStats ExcelDocument::selectionStats() const
+{
+    SelStats st;
+    Page *p = page();
+    if (!p) return st;
+    bool first = true;
+    auto visit = [&](int r, int c) {
+        const Cell *cell = p->sheet->find(r, c);
+        if (!cell || cell->input.isEmpty()) return;
+        ++st.cells;
+        const CellValue v = p->sheet->value(r, c);
+        if (v.type != CellValue::Number) return;
+        ++st.numeric;
+        st.sum += v.num;
+        if (first) { st.min = st.max = v.num; first = false; } else { st.min = qMin(st.min, v.num); st.max = qMax(st.max, v.num); }
+    };
+    for (const QRect &r : selectionRects()) {
+        if (qint64(r.width()) * r.height() > 200000) { // huge range: walk only the stored cells
+            for (auto it = p->sheet->cells().constBegin(); it != p->sheet->cells().constEnd(); ++it) {
+                const int row = Sheet::keyRow(it.key()), col = Sheet::keyCol(it.key());
+                if (r.contains(col, row)) visit(row, col);
+            }
+        } else {
+            for (int row = r.top(); row <= r.bottom(); ++row) for (int col = r.left(); col <= r.right(); ++col) visit(row, col);
+        }
+    }
+    return st;
+}
+
+// Grows a rectangle around (row, col) while the border cells next to it contain data.
+QRect ExcelDocument::dataRegionAround(Page *p, int row, int col) const
+{
+    int t = row, b = row, l = col, r = col;
+    auto filled = [&](int rr, int cc) { const Cell *c = p->sheet->find(rr, cc); return rr >= 0 && cc >= 0 && c && !c->input.isEmpty(); };
+    bool grew = true;
+    for (int guard = 0; grew && guard < 600; ++guard) {
+        grew = false;
+        bool any = false;
+        for (int c = l - 1; c <= r + 1; ++c) any = any || filled(t - 1, c);
+        if (any && t > 0) { --t; grew = true; }
+        any = false;
+        for (int c = l - 1; c <= r + 1; ++c) any = any || filled(b + 1, c);
+        if (any) { ++b; grew = true; }
+        any = false;
+        for (int rr = t - 1; rr <= b + 1; ++rr) any = any || filled(rr, l - 1);
+        if (any && l > 0) { --l; grew = true; }
+        any = false;
+        for (int rr = t - 1; rr <= b + 1; ++rr) any = any || filled(rr, r + 1);
+        if (any) { ++r; grew = true; }
+    }
+    return QRect(QPoint(l, t), QPoint(r, b));
+}
+
+ChartData ExcelDocument::buildChart(Page *p, const QRect &r) const
+{
+    ChartData d;
+    const int rows = qMin(r.height(), 501), cols = qMin(r.width(), 13);
+    if (rows < 1 || cols < 1) return d;
+    const int top = r.top(), left = r.left();
+    auto isNum = [&](int row, int col) { return p->sheet->value(row, col).type == CellValue::Number; };
+    auto isText = [&](int row, int col) { return p->sheet->value(row, col).type == CellValue::Text; };
+    bool header = false;
+    if (rows >= 2) {
+        int text = 0, num = 0;
+        for (int c = 0; c < cols; ++c) { text += isText(top, left + c); num += isNum(top + 1, left + c); }
+        header = text > 0 && num > 0;
+    }
+    const int dataTop = top + (header ? 1 : 0), nRows = rows - (header ? 1 : 0);
+    if (nRows < 1) return d;
+    bool catCol = false;
+    if (cols >= 2) { int t = 0; for (int i = 0; i < nRows; ++i) t += isText(dataTop + i, left); catCol = t > 0 && t * 2 >= nRows; }
+    const int firstSeries = catCol ? 1 : 0;
+    for (int i = 0; i < nRows; ++i) d.categories << (catCol ? p->sheet->display(dataTop + i, left) : QString::number(i + 1));
+    for (int c = firstSeries; c < cols; ++c) {
+        ChartSeries s;
+        s.name = header ? p->sheet->display(top, left + c) : tr("Series %1").arg(c - firstSeries + 1);
+        if (s.name.isEmpty()) s.name = tr("Series %1").arg(c - firstSeries + 1);
+        for (int i = 0; i < nRows; ++i) { const CellValue v = p->sheet->value(dataTop + i, left + c); s.values << (v.type == CellValue::Number ? v.num : 0.0); }
+        d.series << s;
+    }
+    d.title = p->name + QStringLiteral("  ·  ") + Formula::refName(top, left) + QLatin1Char(':') + Formula::refName(top + rows - 1, left + cols - 1);
+    return d;
+}
+
+void ExcelDocument::showChart(ChartView::Type type)
+{
+    Page *p = page();
+    if (!p) return;
+    QRect r = selectionRects().value(0);
+    if (r.isEmpty()) return;
+    if (r.width() * r.height() == 1) r = dataRegionAround(p, r.top(), r.left());
+    ChartData d = buildChart(p, r);
+    bool hasNumbers = false;
+    for (const ChartSeries &s : d.series) for (double v : s.values) hasNumbers = hasNumbers || v != 0.0;
+    if (d.isEmpty() || !hasNumbers) { emit message(tr("Select a range that contains numbers to create a chart."), Toast::Info); return; }
+    m_chartRect = r;
+    m_chartPage = m_tabs->currentIndex();
+    const bool wasHidden = !m_chart->isVisible();
+    m_chart->setChart(d, type);
+    m_chart->view()->setData(d, true); // animate the reveal
+    if (wasHidden) {
+        m_chart->show();
+        m_split->setSizes({ qMax(300, int(width() * 0.58)), qMax(320, int(width() * 0.42)) });
+    }
+}
+
+void ExcelDocument::refreshChart()
+{
+    if (!m_chart->isVisible() || m_chartPage < 0 || m_chartPage >= int(m_pages.size())) return;
+    m_chart->view()->setData(buildChart(m_pages[m_chartPage].get(), m_chartRect), false); // live update without replaying the animation
+}
+
+void ExcelDocument::hideChart() { m_chart->hide(); }
+bool ExcelDocument::chartVisible() const { return m_chart->isVisible(); }
+
+void ExcelDocument::exportChartImage()
+{
+    const QString dir = QSettings().value(QStringLiteral("files/lastDir")).toString();
+    const QString path = QFileDialog::getSaveFileName(this, tr("Export chart"), dir + QLatin1String("/chart.png"), tr("PNG image (*.png)"));
+    if (path.isEmpty()) return;
+    if (m_chart->view()->grab().save(path, "PNG")) emit message(tr("Chart exported."), Toast::Success);
+    else emit message(tr("Could not write the image."), Toast::Error);
+}
+
+void ExcelDocument::showStatistics()
+{
+    Page *p = page();
+    if (!p) return;
+    std::vector<double> v;
+    for (const QRect &r : selectionRects()) {
+        const QRect rr = (r.width() * r.height() == 1) ? dataRegionAround(p, r.top(), r.left()) : r;
+        for (int row = rr.top(); row <= rr.bottom() && v.size() < 2000000; ++row)
+            for (int col = rr.left(); col <= rr.right(); ++col) { const CellValue c = p->sheet->value(row, col); if (c.type == CellValue::Number) v.push_back(c.num); }
+    }
+    if (v.empty()) { emit message(tr("Select cells that contain numbers to see statistics."), Toast::Info); return; }
+    std::sort(v.begin(), v.end());
+    const size_t n = v.size();
+    double sum = 0;
+    for (double x : v) sum += x;
+    const double mean = sum / n, median = n % 2 ? v[n / 2] : (v[n / 2 - 1] + v[n / 2]) / 2.0;
+    double sq = 0;
+    for (double x : v) sq += (x - mean) * (x - mean);
+    const double var = n > 1 ? sq / (n - 1) : 0, sd = std::sqrt(var);
+    auto fmt = [](double x) { return QString::number(x, 'g', 10); };
+
+    QDialog dlg(this);
+    dlg.setWindowTitle(tr("Statistics"));
+    dlg.setMinimumWidth(560);
+    auto *col = new QVBoxLayout(&dlg);
+    col->setContentsMargins(20, 18, 20, 18);
+    auto *html = new QLabel(tr("<table cellpadding='5'>"
+        "<tr><td>Count</td><td><b>%1</b></td><td>&nbsp;&nbsp;Sum</td><td><b>%2</b></td></tr>"
+        "<tr><td>Mean</td><td><b>%3</b></td><td>&nbsp;&nbsp;Median</td><td><b>%4</b></td></tr>"
+        "<tr><td>Minimum</td><td><b>%5</b></td><td>&nbsp;&nbsp;Maximum</td><td><b>%6</b></td></tr>"
+        "<tr><td>Range</td><td><b>%7</b></td><td>&nbsp;&nbsp;Std. deviation (sample)</td><td><b>%8</b></td></tr>"
+        "<tr><td>Variance</td><td><b>%9</b></td><td></td><td></td></tr></table>")
+        .arg(n).arg(fmt(sum), fmt(mean), fmt(median), fmt(v.front()), fmt(v.back())).arg(fmt(v.back() - v.front()), fmt(sd)).arg(fmt(var)), &dlg);
+    html->setTextFormat(Qt::RichText);
+    col->addWidget(html);
+
+    // Distribution histogram.
+    const int bins = qBound(5, int(std::sqrt(double(n))), 12);
+    const double lo = v.front(), hi = v.back(), width = (hi - lo) > 0 ? (hi - lo) / bins : 1.0;
+    ChartData hist;
+    hist.title = tr("Distribution of %1 values").arg(n);
+    ChartSeries counts;
+    counts.name = tr("Count");
+    counts.values = QVector<double>(bins, 0.0);
+    for (double x : v) counts.values[qMin(bins - 1, int((x - lo) / width))] += 1;
+    for (int i = 0; i < bins; ++i) hist.categories << QStringLiteral("%1").arg(QString::number(lo + i * width, 'g', 4));
+    hist.series << counts;
+    auto *chart = new ChartView(&dlg);
+    chart->setData(hist, true);
+    chart->setMinimumHeight(260);
+    col->addWidget(chart);
+    auto *close = new PillButton(tr("Close"), QString(), true, &dlg);
+    connect(close, &PillButton::clicked, &dlg, &QDialog::accept);
+    col->addWidget(close, 0, Qt::AlignRight);
+    dlg.exec();
 }
 
 // ------------------------------------------------------------------ find & replace

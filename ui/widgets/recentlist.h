@@ -23,6 +23,7 @@ private:
     int rowAt(const QPoint &p) const;
     QStringList m_files;
     int m_hover = -1;
-    static constexpr int kRowHeight = 46;
-    static constexpr int kMaxRows = 4;
+    static constexpr int kRowHeight = 52;
+    static constexpr int kHeaderHeight = 30;
+    static constexpr int kMaxRows = 10;
 };

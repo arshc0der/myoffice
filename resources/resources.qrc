@@ -13,6 +13,11 @@
         <file>icons/backward.svg</file>
         <file>icons/bold.svg</file>
         <file>icons/bring-front.svg</file>
+        <file>icons/chart-area.svg</file>
+        <file>icons/chart-column.svg</file>
+        <file>icons/chart-donut.svg</file>
+        <file>icons/chart-line.svg</file>
+        <file>icons/chart-pie.svg</file>
         <file>icons/check.svg</file>
         <file>icons/chevron-down.svg</file>
         <file>icons/chevron-up.svg</file>
@@ -47,6 +52,7 @@
         <file>icons/heading.svg</file>
         <file>icons/help.svg</file>
         <file>icons/highlight.svg</file>
+        <file>icons/home.svg</file>
         <file>icons/hourglass.svg</file>
         <file>icons/image-export.svg</file>
         <file>icons/image.svg</file>
@@ -111,6 +117,7 @@
         <file>icons/sort-za.svg</file>
         <file>icons/spacing-after.svg</file>
         <file>icons/spacing-before.svg</file>
+        <file>icons/stats.svg</file>
         <file>icons/strikethrough.svg</file>
         <file>icons/sun.svg</file>
         <file>icons/table.svg</file>

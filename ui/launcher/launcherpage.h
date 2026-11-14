@@ -16,6 +16,8 @@ signals:
     void newRequested(ApplicationManager::AppId id);
     void openFileRequested();
     void openPathRequested(const QString &path);
+    void aboutRequested();
+    void settingsRequested();
 
 private:
     void refreshTheme();

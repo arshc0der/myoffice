@@ -90,6 +90,8 @@ MainWindow::MainWindow()
     connect(&ThemeManager::instance(), &ThemeManager::themeChanged, this, qOverload<>(&QWidget::update));
     connect(m_launcher, &LauncherPage::newRequested, this, [this](ApplicationManager::AppId id) { ApplicationManager::instance().openApp(id); });
     connect(m_launcher, &LauncherPage::openFileRequested, this, &MainWindow::openFileDialog);
+    connect(m_launcher, &LauncherPage::aboutRequested, this, [this] { AppDialogs::showAbout(this); });
+    connect(m_launcher, &LauncherPage::settingsRequested, this, [this] { AppDialogs::showSettings(this); });
     connect(m_launcher, &LauncherPage::openPathRequested, this, [this](const QString &p) { openFiles({ p }); });
 
     auto *about = new QShortcut(QKeySequence(Qt::Key_F1), this);

@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
     QApplication::setApplicationName(QStringLiteral("MyOffice"));
     QApplication::setOrganizationName(QStringLiteral("MyOffice"));
-    QApplication::setApplicationVersion(QStringLiteral("0.4.0"));
+    QApplication::setApplicationVersion(QStringLiteral("0.5.0"));
 
     QApplication::setStyle(QStringLiteral("Fusion"));
     QFont font = QFontDatabase::systemFont(QFontDatabase::GeneralFont);

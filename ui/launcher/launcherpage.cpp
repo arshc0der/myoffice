@@ -2,80 +2,96 @@
 
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QScrollArea>
 #include <QSettings>
 #include <QTime>
 #include <QVBoxLayout>
 
 #include "core/designtokens.h"
 #include "core/thememanager.h"
+#include "navrail.h"
 #include "ui/widgets/appcard.h"
 #include "ui/widgets/pillbutton.h"
 #include "ui/widgets/recentlist.h"
 #include "ui/widgets/themeutil.h"
 #include "ui/widgets/toggleswitch.h"
 
+// Office-style start screen: navigation rail on the left; greeting, "new blank" tiles and the recent
+// list on the right.
 LauncherPage::LauncherPage(QWidget *parent) : QWidget(parent)
 {
     const int hour = QTime::currentTime().hour();
     const QString greeting = hour < 12 ? tr("Good morning") : hour < 18 ? tr("Good afternoon") : tr("Good evening");
     auto &theme = ThemeManager::instance();
 
-    m_heading = new QLabel(greeting, this);
-    m_heading->setFont(theme.uiFont(Design::Type::display, QFont::DemiBold));
-    m_heading->setAlignment(Qt::AlignHCenter);
-    m_sub = new QLabel(tr("Create something new, or open any file."), this);
-    m_sub->setFont(theme.uiFont(Design::Type::subtitle));
-    m_sub->setAlignment(Qt::AlignHCenter);
+    auto *rail = new NavRail(this);
+    connect(rail, &NavRail::openRequested, this, &LauncherPage::openFileRequested);
+    connect(rail, &NavRail::settingsRequested, this, &LauncherPage::settingsRequested);
+    connect(rail, &NavRail::aboutRequested, this, &LauncherPage::aboutRequested);
 
-    auto *cards = new QHBoxLayout;
-    cards->setSpacing(Design::Space::sm);
+    m_heading = new QLabel(greeting, this);
+    m_heading->setFont(theme.uiFont(22, QFont::DemiBold));
+    m_sub = new QLabel(tr("Create a new file"), this);
+    m_sub->setFont(theme.uiFont(Design::Type::subtitle, QFont::DemiBold));
+
+    auto *tiles = new QHBoxLayout;
+    tiles->setSpacing(Design::Space::md);
     for (const auto &info : ApplicationManager::apps()) {
         auto *card = new AppCard(info.id, this);
         connect(card, &AppCard::activated, this, &LauncherPage::newRequested);
-        cards->addWidget(card);
+        tiles->addWidget(card);
     }
 
-    auto *open = new PillButton(tr("Open file…"), QStringLiteral("folder"), false, this);
-    connect(open, &PillButton::clicked, this, &LauncherPage::openFileRequested);
+    m_recentTitle = new QLabel(tr("Recent"), this);
+    m_recentTitle->setFont(theme.uiFont(Design::Type::subtitle, QFont::DemiBold));
+    m_viewLabel = new QLabel(tr("Open files in view mode first"), this);
+    m_viewLabel->setFont(theme.uiFont(Design::Type::body));
     auto *toggle = new ToggleSwitch(tr("Open files in view mode first"), this);
     toggle->setChecked(QSettings().value(QStringLiteral("files/openInViewMode"), true).toBool(), false);
     connect(toggle, &ToggleSwitch::toggled, this, [](bool on) { QSettings().setValue(QStringLiteral("files/openInViewMode"), on); });
-    m_viewLabel = new QLabel(tr("Open files in view mode first"), this);
-    m_viewLabel->setFont(theme.uiFont(Design::Type::body));
-    auto *tools = new QHBoxLayout;
-    tools->addWidget(open);
-    tools->addStretch(1);
-    tools->addWidget(m_viewLabel);
-    tools->addWidget(toggle);
+    auto *open = new PillButton(tr("Open file…"), QStringLiteral("folder"), false, this);
+    connect(open, &PillButton::clicked, this, &LauncherPage::openFileRequested);
+    auto *recentHeader = new QHBoxLayout;
+    recentHeader->addWidget(m_recentTitle);
+    recentHeader->addStretch(1);
+    recentHeader->addWidget(m_viewLabel);
+    recentHeader->addWidget(toggle);
+    recentHeader->addSpacing(Design::Space::lg);
+    recentHeader->addWidget(open);
 
-    m_recentTitle = new QLabel(tr("Recent"), this);
-    m_recentTitle->setFont(theme.uiFont(Design::Type::body, QFont::DemiBold));
     auto *recent = new RecentList(this);
     connect(recent, &RecentList::openRequested, this, &LauncherPage::openPathRequested);
 
-    auto *host = new QWidget(this);
-    host->setMaximumWidth(1000);
-    auto *hostCol = new QVBoxLayout(host);
-    hostCol->setContentsMargins(0, 0, 0, 0);
-    hostCol->setSpacing(Design::Space::md);
-    hostCol->addLayout(cards);
-    hostCol->addLayout(tools);
-    hostCol->addWidget(m_recentTitle);
-    hostCol->addWidget(recent);
-
-    m_footer = new QLabel(tr("MyOffice 0.4.0  ·  MyWord, MyExcel and MyPowerPoint  ·  github.com/arshc0der/myoffice"), this);
+    m_footer = new QLabel(tr("MyOffice 0.5.0  ·  github.com/arshc0der/myoffice"), this);
     m_footer->setFont(theme.uiFont(Design::Type::caption));
-    m_footer->setAlignment(Qt::AlignHCenter);
 
-    auto *col = new QVBoxLayout(this);
-    col->setContentsMargins(Design::Space::xxl, Design::Space::lg, Design::Space::xxl, Design::Space::md);
-    col->addStretch(1);
+    auto *content = new QWidget;
+    content->setAutoFillBackground(false);
+    auto *col = new QVBoxLayout(content);
+    col->setContentsMargins(44, 32, 44, 16);
+    col->setSpacing(Design::Space::md);
     col->addWidget(m_heading);
+    col->addSpacing(Design::Space::sm);
     col->addWidget(m_sub);
-    col->addSpacing(Design::Space::md);
-    col->addWidget(host, 0, Qt::AlignHCenter);
-    col->addStretch(2);
+    col->addLayout(tiles);
+    col->addSpacing(Design::Space::lg);
+    col->addLayout(recentHeader);
+    col->addWidget(recent);
+    col->addStretch(1);
     col->addWidget(m_footer);
+
+    auto *scroll = new QScrollArea(this);
+    scroll->setFrameShape(QFrame::NoFrame);
+    scroll->setWidgetResizable(true);
+    scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    scroll->viewport()->setAutoFillBackground(false);
+    scroll->setWidget(content);
+
+    auto *root = new QHBoxLayout(this);
+    root->setContentsMargins(0, 0, 0, 0);
+    root->setSpacing(0);
+    root->addWidget(rail);
+    root->addWidget(scroll, 1);
 
     connect(&theme, &ThemeManager::themeChanged, this, &LauncherPage::refreshTheme);
     refreshTheme();
@@ -85,7 +101,7 @@ void LauncherPage::refreshTheme()
 {
     const Palette &pal = ThemeManager::instance().palette();
     setTextColor(m_heading, pal.text);
-    setTextColor(m_sub, pal.textSecondary);
+    setTextColor(m_sub, pal.text);
     setTextColor(m_recentTitle, pal.text);
     setTextColor(m_viewLabel, pal.textSecondary);
     setTextColor(m_footer, pal.textSecondary);

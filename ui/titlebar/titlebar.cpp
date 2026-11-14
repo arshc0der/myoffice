@@ -93,7 +93,7 @@ void TitleBar::paintEvent(QPaintEvent *)
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing);
     p.setPen(Qt::NoPen);
-    p.setBrush(ThemeManager::instance().palette().chrome);
+    p.setBrush(ThemeManager::instance().palette().chrome); // flat, like Office
     p.setClipRect(rect());
     p.drawRoundedRect(QRectF(0, 0, width(), height() + m_radius), m_radius, m_radius);
 }

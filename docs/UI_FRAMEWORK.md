@@ -93,3 +93,11 @@ They are plain functions (no `Q_OBJECT`); change the repository URL in one place
 4. Set `setAccessibleName()`, a focus policy, and handle Space/Enter if the widget is clickable.
 5. Use `Icons::pixmap(name, color, size, devicePixelRatioF())` for icons.
 6. Use `Design::` tokens instead of literal numbers.
+
+## Launcher (Office-style start screen)
+
+`LauncherPage` = `NavRail` (left, 220 px: Home, Open, Settings, About) + a scrollable column with the greeting, `AppCard` tiles ("Blank document / workbook / presentation" with the first three file types) and `RecentList`.
+
+* `NavRail` (`ui/launcher/navrail.*`): painted list with hover/selected states; signals `homeRequested`, `openRequested`, `settingsRequested`, `aboutRequested`.
+* `RecentList`: up to 10 entries with file icon (tinted by app), file name, folder and **Date modified** column; a missing file shows "File not found" and is removed from the list when clicked.
+* `AppCard`: flat 100 px tile; hover mixes the border with the app colour.

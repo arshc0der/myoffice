@@ -13,8 +13,8 @@ public:
     explicit AppCard(ApplicationManager::AppId id, QWidget *parent = nullptr);
     qreal hover() const { return m_hover; }
     void setHover(qreal v) { m_hover = v; update(); }
-    QSize sizeHint() const override { return { 280, 330 }; }
-    QSize minimumSizeHint() const override { return { 240, 300 }; }
+    QSize sizeHint() const override { return { 270, 100 }; }
+    QSize minimumSizeHint() const override { return { 220, 100 }; }
 
 signals:
     void activated(ApplicationManager::AppId id);

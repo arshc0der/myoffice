@@ -61,6 +61,14 @@ void IconButton::paintEvent(QPaintEvent *)
     p.setPen(Qt::NoPen);
     p.setBrush(fill);
     p.drawRoundedRect(bg, Design::Radius::sm, Design::Radius::sm);
+    if (m_checked) {
+        QColor c = pal.accent;
+        c.setAlphaF(0.2);
+        p.setBrush(c);
+        p.setPen(QPen(pal.accent, 1));
+        p.drawRoundedRect(bg, Design::Radius::sm, Design::Radius::sm);
+        ink = pal.accentDeep;
+    }
     if (hasFocus()) {
         p.setBrush(Qt::NoBrush);
         p.setPen(QPen(m_onChrome ? pal.chromeText : pal.accent, 2));

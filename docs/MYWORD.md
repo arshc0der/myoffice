@@ -73,3 +73,7 @@ Builds the ribbon pages *File, Home, Insert, Layout, Review, View*, the status b
 | `PdfExport` | `bool write(doc, PageSetup, path, QString *error)` | Clones the document, paginates manually with `drawContents`, optional page numbers; 96 dpi device so layout matches the screen. |
 
 Plain text, Markdown (`QTextDocument::toMarkdown/setMarkdown`) and ODT (`QTextDocumentWriter`, export only) use Qt directly.
+
+## Document statistics
+
+`WordWorkspace::showWordCount()` (Review → Document Statistics) reports pages, words, characters (with/without spaces), paragraphs, sentences, **reading time** (200 words/min), average word length, **Flesch reading ease** (heuristic syllable counter) with a plain-language level (Easy / Standard / Fairly difficult / Difficult) and the five most used words (stop-words and words ≤ 3 letters excluded).

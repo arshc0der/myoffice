@@ -81,3 +81,23 @@ Safety clamp: a selection that spans huge ranges (e.g. a whole column) is limite
 * `CsvIO::read/write` — RFC 4180 parser; delimiter auto-detected (`,` `;` tab); UTF-8 (BOM written on export so Excel detects the encoding).
 * `XlsxIO::read/write` — multiple sheets, values, formulas with cached results, fonts, solid fills, alignment, number formats; see [FILE_FORMATS.md](FILE_FORMATS.md#xlsx).
 * PDF — prints the used range of the active sheet in landscape A4, splitting wide sheets into column bands.
+
+## Charts and analytics
+
+### `ChartView` / `ChartPanel` (`spreadsheet/chartpanel.*`)
+A dependency-free chart widget (no Qt Charts module). Types: `Column`, `Line`, `Area`, `Pie`, `Donut`. Data is a plain `ChartData { title, categories, series[] }`.
+
+* Painted with `QPainter`: grid with "nice" axis ticks, legend, Office default palette (`#4472C4 #ED7D31 #A5A5A5 #FFC000 #5B9BD5 #70AD47 …`), animated reveal (`reveal` property, honours reduced motion), hover highlight + tooltip.
+* `ChartPanel` adds the type buttons (`IconButton::setChecked` marks the active type), *Export PNG* and *Close*.
+
+### How a chart is built from cells (`ExcelDocument::buildChart`)
+1. A single selected cell expands to the contiguous data block around it (`dataRegionAround`).
+2. If the first row has text and the second row has numbers, it is used as the **header** (series names).
+3. If at least half of the first column is text it becomes the **category** column; otherwise categories are 1…n.
+4. Every remaining column is a series; non-numeric cells count as 0. Limits: 500 rows × 12 series.
+
+The chart is **live**: any `dataChanged` restarts a 180 ms timer that rebuilds the chart from the remembered range (`m_chartRect`) without replaying the animation. Charts are not saved in XLSX yet.
+
+### Statistics
+* `ExcelDocument::selectionStats()` → `SelStats { cells, numeric, sum, min, max }`, shown in the status bar as *Average / Count / Sum*. Huge selections walk only the stored cells.
+* `ExcelDocument::showStatistics()` (Data → Statistics): count, sum, mean, median, min, max, range, sample standard deviation, variance and a histogram (√n bins, 5–12) drawn by `ChartView`.

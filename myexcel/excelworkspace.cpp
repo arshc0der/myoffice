@@ -9,6 +9,7 @@
 #include <cmath>
 
 #include "core/thememanager.h"
+#include "myexcel/spreadsheet/chartpanel.h"
 #include "myexcel/spreadsheet/exceldocument.h"
 #include "ui/ribbon/colormenu.h"
 #include "ui/ribbon/ribbon.h"
@@ -180,6 +181,25 @@ void ExcelWorkspace::buildInsert()
     connect(add, &QAction::triggered, this, [this] { if (auto *d = excelDoc()) d->addSheet(); });
     connect(del, &QAction::triggered, this, [this] { if (auto *d = excelDoc()) d->deleteSheet(); });
     connect(ren, &QAction::triggered, this, [this] { if (auto *d = excelDoc()) d->renameSheet(); });
+    // Charts
+    RibbonGroup *charts = page->addGroup(tr("Charts"));
+    const struct { const char *t, *icon; ChartView::Type type; } kinds[] = {
+        { "Column", "chart-column", ChartView::Column }, { "Line", "chart-line", ChartView::Line }, { "Area", "chart-area", ChartView::Area },
+        { "Pie", "chart-pie", ChartView::Pie }, { "Donut", "chart-donut", ChartView::Donut } };
+    for (const auto &k : kinds) {
+        QAction *a = makeAction(tr(k.t), QLatin1String(k.icon));
+        const ChartView::Type type = k.type;
+        connect(a, &QAction::triggered, this, [this, type] { if (auto *d = excelDoc()) d->showChart(type); });
+        charts->addLarge(a);
+    }
+    RibbonGroup *ctools = page->addGroup(tr("Chart tools"));
+    QAction *exp = makeAction(tr("Export\nChart"), QStringLiteral("image-export"));
+    QAction *hide = makeAction(tr("Hide\nChart"), QStringLiteral("close"));
+    connect(exp, &QAction::triggered, this, [this] { if (auto *d = excelDoc()) d->exportChartImage(); });
+    connect(hide, &QAction::triggered, this, [this] { if (auto *d = excelDoc()) d->hideChart(); });
+    ctools->addLarge(exp);
+    ctools->addLarge(hide);
+
     RibbonGroup *sheets = page->addGroup(tr("Sheets"));
     sheets->addLarge(add);
     sheets->beginColumn();
@@ -227,6 +247,9 @@ void ExcelWorkspace::buildData()
     RibbonGroup *f = page->addGroup(tr("Fill"));
     f->addLarge(fd);
     f->addLarge(fr);
+    QAction *stats = makeAction(tr("Statistics"), QStringLiteral("stats"));
+    connect(stats, &QAction::triggered, this, [this] { if (auto *d = excelDoc()) d->showStatistics(); });
+    page->addGroup(tr("Analyze"))->addLarge(stats);
 }
 
 void ExcelWorkspace::buildView()
@@ -289,8 +312,12 @@ void ExcelWorkspace::syncStatus()
         m_zoomSlider->setValue(d->zoom());
     }
     m_zoomLabel->setText(QString::number(d->zoom()) + QLatin1Char('%'));
+    const auto ss = d->selectionStats();
+    if (ss.numeric > 0)
+        m_statLabel->setText(tr("Average: %1     Count: %2     Sum: %3").arg(QString::number(ss.sum / ss.numeric, 'g', 8)).arg(ss.numeric).arg(QString::number(ss.sum, 'g', 10)));
+    else if (ss.cells > 0) m_statLabel->setText(tr("Count: %1").arg(ss.cells));
+    else m_statLabel->clear();
     m_selLabel->clear();
-    m_statLabel->clear();
     const auto st = d->state();
     m_selLabel->setText(st.sheetName);
 }

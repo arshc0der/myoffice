@@ -25,7 +25,7 @@ The list is ordered roughly by value; "good first issue" marks items that are sm
 ## MyExcel
 
 - [ ] Dependency graph for recalculation (today the cache is cleared on every edit)
-- [ ] Charts, conditional formatting, filters, freeze panes, merged cells
+- [ ] Save charts in XLSX; embed charts in the grid; conditional formatting, filters, freeze panes, merged cells
 - [ ] Cross-sheet references (`Sheet2!A1`) and named ranges
 - [ ] Drag-fill handle, column widths in XLSX, data validation
 - [ ] More functions (`SUMIF`, `COUNTIF`, `VLOOKUP`, `MEDIAN`, date functions) — *good first issue* (see [cookbook](ADDING_FEATURES.md#add-a-spreadsheet-function))

@@ -37,7 +37,7 @@ void SlideAnimator::setSlide(const Slide *slide)
         const bool newStep = o.anim.trigger == Ppt::Trigger::OnClick || m_steps.isEmpty();
         if (newStep) {
             if (m_steps.isEmpty() && o.anim.trigger != Ppt::Trigger::OnClick) m_autoFirst = true;
-            m_steps.append(QList<Entry>());
+            m_steps.append(QList<SlideAnimator::Entry>{});
             prevStart = 0;
             prevDur = 0;
         }
